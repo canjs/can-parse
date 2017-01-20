@@ -104,7 +104,7 @@ QUnit.test('parse.getExpressionLex', function(){
 QUnit.test("parse.getLexPossibilities", function(){
 	var parser = parse(grammar);
 
-	var lexPossibilities = parser.getLexPossibilities("TAG",[2,3,4,5], 3);
+	var lexPossibilities = parser.getLexPossibilities({expression: "TAG", ruleIndexes: [2,3,4,5], tokenIndex: 3});
 	console.log(lexPossibilities);
 	QUnit.deepEqual(lexPossibilities, {
 		">": [
