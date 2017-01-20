@@ -1,5 +1,4 @@
 var each = require("can-util/js/each/each");
-var assign = require("can-util/js/assign/assign");
 var last = require("can-util/js/last/last");
 /*
  *
@@ -22,6 +21,11 @@ var eachBackwardsBreak = function(arr,callback){
 	}
 };
 
+function numberKeys(obj) {
+	return Object.keys(obj).map(function(num){
+		return +num;
+	});
+}
 
 
 // want to know available lex options at all times ...
@@ -29,14 +33,16 @@ var eachBackwardsBreak = function(arr,callback){
 function makeParser(grammar){
 	var recurseCount = 0;
 
-	var parser = function(text, callbacks) {
+	var parser = function(text) {
 		recurseCount = 0;
 
-		var indexStack = [["EXPRESSION",1]];
-		var lexPossibilities = parser.getLexPossibilities("EXPRESSION", Object.keys(grammar.tree.EXPRESSION), 0);
+		var indexStack = [{expression :"EXPRESSION", tokenIndex: -1, ruleIndexes: numberKeys(grammar.tree.EXPRESSION) }];
+		var lexPossibilities = parser.getLexPossibilities("EXPRESSION", numberKeys(grammar.tree.EXPRESSION), 0);
 
-		var lexMatch = parser.getLexMatch(text, lexPossibilities);
+		var lexMatch = parser.getLexMatch(text, lexPossibilities, 0);
+
 		parser.updateStack(indexStack, lexMatch);
+		console.log("  after stack ",  JSON.stringify(indexStack));
 		while(lexMatch) {
 			recurseCount++;
 			if(recurseCount >= 500) {
@@ -44,153 +50,63 @@ function makeParser(grammar){
 			}
 
 			text = text.substr(lexMatch.match.length);
+			console.log(text);
 			// update the stack
 
 			// [EXPRESSION, TAG]
 
-			//
-			// rules for processing the next value
-			var rules = lexMatch.rules;
-			var newLexMatch = eachBackwardsBreak(lexMatch.rules, function(rule){
-				// how does this become 1?
-				var subRulePossibilities = parser.getLexPossibilities(
-					rule[0],
-					rule[1],
-					parser.startingIndex(indexStack, rule));
 
-				return parser.getLexMatch(text, subRulePossibilities);
+			// go through each of the next steps ruleIndexes, starting at the
+			// "lowest" expression
+			var newLexMatch = eachBackwardsBreak(indexStack, function(stackExpression){
+
+				// get which token index we should start at for this stackExpression
+				var tokenIndex = stackExpression.tokenIndex + 1;
+
+				var lexToNextExpressions = parser.getLexPossibilities(
+					stackExpression.expression,
+					// rule indexes
+					stackExpression.ruleIndexes,
+					tokenIndex);
+				console.log("    getLexPossibilities",JSON.stringify(stackExpression),tokenIndex,  lexToNextExpressions);
+
+				var lexMatch = parser.getLexMatch(text, lexToNextExpressions, tokenIndex);
+				// {match: "matched text", expressions: [[EXPR_NAME, RULE_tokenIndexES]], lex: matched}
+
+				if(!lexMatch) {
+					throw new Error("couldn't find a match for "+
+						JSON.stringify(stackExpression)+":"+
+						tokenIndex+
+						" on "+text.substr(0,20));
+				}
+
+				if( lexMatch.lex === "EXPRESSION_COMPLETED" ) {
+					parser.expressionCompleted(indexStack);
+					return; // continues up the stack ... we might need to pop something
+				} else {
+					return lexMatch;
+				}
 			});
-			parser.updateStack(indexStack, newLexMatch);
+			console.log("  lexMatch", JSON.stringify(newLexMatch));
+			console.log("  before stack", JSON.stringify(indexStack))
+			if(newLexMatch) {
+				parser.updateStack(indexStack, newLexMatch);
+				if(parser.isLastMatch(last(indexStack), lexMatch)) {
+					indexStack.pop();
+				}
+
+				console.log("  after stack ",  JSON.stringify(indexStack));
+			}
+
 			lexMatch = newLexMatch;
 
 		}
 
-
-		return;
-		var lexPossibilities = parser.getLexPossibilities("EXPRESSION", "*");
-
-		lexPossibilities = {
-			"<": {
-				EXPRESSION: [0,3],
-				TAG: [0,1,2,3,4,5]
-			},
-			"</": {
-				EXPRESSION: [1,4],
-				CLOSING: [1]
-			},
-			"SPACE": {
-				EXPRESSION: [2,5],
-				MAGIC_OR_TEXT: [0, 2],
-				TEXT: [0,1]
-			},
-			"NOT_SPACE": {
-				EXPRESSION: [2,5],
-				MAGIC_OR_TEXT: [0, 2],
-				TEXT: [2,3]
-			},
-			"{":{
-				EXPRESSION: [2,5],
-				MAGIC_OR_TEXT: [1, 3],
-				MAGIC: [0]
-			}
-		};
-
-		// given lex ... which "rule" is it ?
-		var matchedLex = "<";
-
-		var rule = {
-			EXPRESSION: [0,3],
-			TAG: [0,1,2,3,4,5]
-		};
-
-		// now we move the text
-		text = "my-element bar='car'/>";
-		// we want to check the "next" step in magic first ...
-
-		lexPossibilities = parser.getLexPossibilities("TAG",[0,1,2,3,4,5], 1);
-		lexPossibilities = {
-			TAGNAME: {
-				TAG: [0,1,2,3,4,5]
-			}
-		}; // might need some way of saying it MUST be a tag here or previous lex
-		matchedLex = "TAGNAME";
-
-		text = " bar='car'/>";
-		rule = {
-			TAG: [0,1,2,3,4,5]
-		};
-		lexPossibilities = parser.getLexPossibilities("TAG",[0,1,2,3,4,5], 2);
-		lexPossibilities = {
-			">": {
-				TAG: [0]
-			},
-			"/>": {
-				TAG: [1]
-			},
-			SPACE: {
-				TAG: [2,3,4,5]
-			}
-		};
-		matchedLex = "SPACE";
-
-		text = "bar='car'/>";
-		rule = {
-			TAG: [2,3,4,5]
-		};
-		lexPossibilities = parser.getLexPossibilities("TAG",[2,3,4,5], 3);
-		lexPossibilities = {
-			">": {
-				TAG: [2]
-			},
-			"/>": {
-				TAG: [3]
-			},
-			"'": {
-				TAG: [4,5],
-				ATTRS: [0,1],
-				ATTR: [0],
-				QUOTE: [0]
-			},
-			'"': {
-				TAG: [4,5],
-				ATTRS: [0,1],
-				ATTR: [0],
-				QUOTE: [1]
-			},
-			NOT_SPACE_RIGHT_CARROT: {
-				TAG: [4,5],
-				ATTRS: [0,1],
-				ATTR: [1,2,3,4],
-			},
-			"{": {
-				TAG: [4,5],
-				ATTRS: [2,3],
-				MAGIC: [1],
-			}
-		};
-		matchedLex = "NOT_SPACE_RIGHT_CARROT";
-
-		text = "='car'/>";
-		rule = {
-			TAG: [4,5],
-			ATTRS: [0,1],
-			ATTR: [1,2,3,4],
-		};
-		lexPossibilities = parser.getLexPossibilities("ATTR",[1,2,3,4], 1);
-		lexPossibilities = {
-			"=": {
-				ATTR: [1,2,3]
-			},
-			BREAK: [4]
-		};
-		lexPossibilities = "=";
-
-		return ruleMatch;
 	};
 
 
-
-	parser.getLexPossibilities = function(expression, rules, INDEX){
+	// -> {lex: EXPRESSIONS[ [EXPRESSION, RULE_tokenIndexES[] ] ]}
+	parser.getLexPossibilities = function(expression, ruleIndexes, tokenIndex){
 		recurseCount++;
 		if(recurseCount > 500) {
 			console.warn("too much recursion");
@@ -198,37 +114,37 @@ function makeParser(grammar){
 		}
 
 		var expressionLexes = {};
-		// map of which rules were at a given sub-expression
+		// map of which ruleIndexes were at a given sub-expression
 		var subExpressionRules = {}; //{ATTRS: [4,5]}
-		rules.forEach(function(index){
+		ruleIndexes.forEach(function(index){
 			index = +index;
 			// we are going to get ATTRS
-			var rule = grammar.tree[expression][index][INDEX];
-			if(!rule) {
-				// this might be a "EXPRESSION_COMPLETED" rule ...
-				if(grammar.tree[expression][index].length === INDEX) {
-					rule = "EXPRESSION_COMPLETED";
+			var token = grammar.tree[expression][index][tokenIndex];
+			if(!token) {
+				// this might be a "EXPRESSION_COMPLETED" token ...
+				if(grammar.tree[expression][index].length === tokenIndex) {
+					token = "EXPRESSION_COMPLETED";
 				} else {
 					throw new Error("Expression "+expression+", Rule: "+index+" has no futher tokens");
 				}
 			}
-			if(!subExpressionRules[rule]) {
-				subExpressionRules[rule] = [];
+			if(!subExpressionRules[token]) {
+				subExpressionRules[token] = [];
 			}
-			subExpressionRules[rule].push(index);
+			subExpressionRules[token].push(index);
 			// returns the available lexes ... we need to add these to expression lexes
 			// probably make sure there's no conflict.
 
 			// we only need to get this once
-			if(grammar.lex[rule] || rule === "EXPRESSION_COMPLETED") {
-				expressionLexes[rule] = [[expression, subExpressionRules[rule]]];
+			if(grammar.lex[token] || token === "EXPRESSION_COMPLETED") {
+				expressionLexes[token] = [{expression: expression, ruleIndexes: subExpressionRules[token] }];
 			}
-			else if( subExpressionRules[rule].length === 1 ) {
-				var lexes = parser.getLexPossibilities(rule,Object.keys(grammar.tree[rule]), 0);
+			else if( subExpressionRules[token].length === 1 ) {
+				var lexes = parser.getLexPossibilities(token,Object.keys(grammar.tree[token]), 0);
 
 				each(lexes, function(subExpressionAndRules, lex){
 					subExpressionAndRules = subExpressionAndRules.slice(0);
-					subExpressionAndRules.unshift([expression, subExpressionRules[rule] ]);
+					subExpressionAndRules.unshift({expression: expression, ruleIndexes: subExpressionRules[token]});
 					expressionLexes[lex] = subExpressionAndRules;
 				});
 			}
@@ -238,37 +154,90 @@ function makeParser(grammar){
 	};
 
 	parser.getLexMatch = function(text, lexPossibilities) {
-		return eachBreak(lexPossibilities, function(rules, lexKey){
+		var EXPRESSION_COMPLETED;
+		var lexMatch = eachBreak(lexPossibilities, function(expressions, lexKey){
+			if(lexKey === "EXPRESSION_COMPLETED") {
+				EXPRESSION_COMPLETED = {
+					expressions: expressions,
+					lex: lexKey
+				};
+				return; // keep checking
+			}
 			var result = grammar.lex[lexKey].exec(text);
 			if(result) {
+
 				return {
 					match: result[0],
-					rules: rules,
+					expressions: expressions,
 					lex: lexKey
 				};
 			}
-
 		});
+		if(lexMatch) {
+			return lexMatch;
+		} else {
+			return EXPRESSION_COMPLETED;
+		}
 	};
 	parser.updateStack = function(stack, lexMatch) {
 		var topOfStack = last(stack);
-		var lastRule = last(lexMatch.rules);
-		if(lastRule[0] !== topOfStack[0]) {
-			stack.push([lastRule[0],0]);
+		var lastRule = last(lexMatch.expressions);
+		if(lastRule.expression !== topOfStack.expression) {
+			var firstMatchExpression = lexMatch.expressions[0];
+			if(firstMatchExpression.expression === topOfStack.expression && lexMatch.expressions.length > 1) {
+				topOfStack.ruleIndexes = firstMatchExpression.ruleIndexes;
+				topOfStack.tokenIndex++
+				for(var i = 1; i < lexMatch.expressions.length; i++) {
+					var expr = lexMatch.expressions[i];
+					stack.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes, tokenIndex: 0});
+				}
+			} else {
+				// we probably popped the stack
+			}
+
 		} else {
-			topOfStack[1]++;
+			topOfStack.ruleIndexes = lastRule.ruleIndexes;
+			topOfStack.tokenIndex++;
 		}
 	};
 	parser.ruleSameAsCurrent = function(indexStack, rule) {
 		var topOfStack = last(indexStack);
-		return topOfStack[0] === rule[0];
+		return topOfStack.expression === rule.expression;
 	};
-	parser.startingIndex = function(indexStack, rule) {
+	parser.ruleInStack = function(indexStack, rule) {
+		eachBackwardsBreak(indexStack, function(stackItem){
+			if(stackItem.expression === rule.expression) {
+				return stackItem;
+			}
+		});
+	};
+	parser.tokenIndex = function(indexStack, rule) {
+		var stackItem = parser.ruleInStack(indexStack, rule);
+		if(stackItem) {
+			return stackItem.tokenIndex+1;
+		}
 		if(parser.ruleSameAsCurrent(indexStack, rule)) {
-			return last(indexStack)[1]+1;
+			return last(indexStack).tokenIndex+1;
 		} else {
 			return 1;
 		}
+	};
+	parser.expressionCompleted = function(indexStack) {
+		indexStack.pop();
+	};
+	parser.isLastMatch = function(expression, lexMatch){
+		var expressionName = expression.expression;
+		var expressionRulesIndexes = expression.ruleIndexes;
+
+		// there has to have been a match, and only one expressionRule index could match for us to end it.
+		// Something might be wrong if it should be a last match, but there are other matches.
+		if(lexMatch && expressionRulesIndexes.length === 1) {
+			var ruleIndex = expressionRulesIndexes[0];
+			var ruleTokens = grammar.tree[expressionName][ruleIndex];
+			return ruleTokens.length === expression.tokenIndex + 1;
+
+		}
+		return false;
 	};
 
 	return parser;

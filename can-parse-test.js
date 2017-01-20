@@ -108,36 +108,38 @@ QUnit.test("parse.getLexPossibilities", function(){
 	console.log(lexPossibilities);
 	QUnit.deepEqual(lexPossibilities, {
 		">": [
-			["TAG", [2]]
+			{expression:"TAG", ruleIndexes: [2]}
 		],
 		"/>": [
-			["TAG", [3]]
+			{expression:"TAG", ruleIndexes: [3]}
 		],
 		"'": [
-			["TAG", [4,5]],
-			["ATTRS", [0,1]],
-			["ATTR", [0]],
-			["QUOTE", [0]],
+			{expression:"TAG", ruleIndexes: [4,5]},
+			{expression:"ATTRS", ruleIndexes: [0,1]},
+			{expression:"ATTR", ruleIndexes: [0]},
+			{expression:"QUOTE", ruleIndexes: [0]},
 		],
 		'"': [
-			["TAG", [4,5]],
-			["ATTRS", [0,1]],
-			["ATTR", [0]],
-			["QUOTE", [1]]
+			{expression:"TAG", ruleIndexes: [4,5]},
+			{expression:"ATTRS", ruleIndexes: [0,1]},
+			{expression:"ATTR", ruleIndexes: [0]},
+			{expression:"QUOTE", ruleIndexes: [1]}
 		],
 		NOT_SPACE_RIGHT_CARROT: [
-			["TAG", [4,5]],
-			["ATTRS", [0,1]],
-			["ATTR", [1,2,3,4]],
+			{expression:"TAG", ruleIndexes: [4,5]},
+			{expression:"ATTRS", ruleIndexes: [0,1]},
+			{expression:"ATTR", ruleIndexes: [1,2,3,4]},
 		],
 		"{": [
-			["TAG", [4,5]],
-			["ATTRS", [2,3]],
-			["MAGIC", [0]]
+			{expression:"TAG", ruleIndexes: [4,5]},
+			{expression:"ATTRS", ruleIndexes: [2,3]},
+			{expression:"MAGIC", ruleIndexes: [0]}
 		]
 	});
 
 });
+
+
 /*
 QUnit.test("COMPLETED", function(){
 	var parser = parse(grammar);
@@ -155,5 +157,28 @@ QUnit.test("COMPLETED", function(){
 QUnit.test("basics", function(){
 	var parser = parse(grammar);
 	parser("<my-element bar='car'/>");
+	QUnit.ok(true, "parsing runs through without errors");
+});
 
+QUnit.test("updateStack", function(){
+	var parser = parse(grammar);
+	var stack = [
+		{expression: "EXPRESSION", ruleIndexes: [1], tokenIndex: 1},
+		{expression: "TAG", ruleIndexes: [1,2,3,4,5], tokenIndex: 1}
+	];
+	parser.updateStack(stack, {
+		"match":"bar",
+		"expressions":[
+			{expression: "TAG", ruleIndexes:[4,5]},
+			{expression: "ATTRS", ruleIndexes:[0,1]},
+			{expression: "ATTR", ruleIndexes: [1,2,3,4]}
+		],
+		"lex":"NOT_SPACE_RIGHT_CARROT"
+	});
+	QUnit.deepEqual(stack, [
+		{expression: "EXPRESSION", ruleIndexes: [1], tokenIndex: 1},
+		{expression: "TAG", ruleIndexes:[4,5], tokenIndex: 2},
+		{expression: "ATTRS", ruleIndexes:[0,1], tokenIndex: 0},
+		{expression: "ATTR", ruleIndexes: [1,2,3,4], tokenIndex: 0}
+	]);
 });
