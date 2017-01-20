@@ -6,69 +6,116 @@ A simple context-free parser generator
 
 ## Usage
 
-### ES6 use
+This is similar to use as [Jison](http://zaa.ch/jison/), but it's designed to be
+tiny (<1k `min+gip`) and fast (while being less expressive than Jison).
 
-With StealJS, you can import this module directly in a template that is autorendered:
-
-```js
-import plugin from 'can-parse';
-```
-
-### CommonJS use
-
-Use `require` to load `can-parse` and everything else
-needed to create a template that uses `can-parse`:
+To create a parser, first create a `grammar` with `lex`ical tokens and
+an expression `tree` as follows:
 
 ```js
-var plugin = require("can-parse");
+var grammar = {
+	lex: {
+		"{": /^\{/,
+		"}": /^\}/,
+		"<": /^</,
+		"/>" : /^\/>/,
+		"</" : /^<\//,
+		">": /^>/,
+		"SPACE": /^\s/,
+		"'": /^'/,
+		'"': /^"/,
+		"=": /^=/,
+		ALPHA_NUMERIC: /^[A-Za-z0-9]+/,
+		TAGNAME: /^[a-z][-:_A-Za-z0-9]*/,
+		NOT_END_MAGIC: /^([^\}]*)/,
+		NOT_SPACE: /^[^\s\{\}<]+/,
+		NOT_SPACE_RIGHT_CARROT: /^[^\s>=\{]+/,
+		NOT_MAGIC_OR_DOUBLE: /^[^"\{]+/,
+		NOT_MAGIC_OR_SINGLE: /^[^'\{]+/
+	},
+	tree: {
+		EXPRESSION: [
+			["TAG"],
+			["CLOSING"],
+			["MAGIC_OR_TEXT"],
+			["TAG", "EXPRESSION"],
+			["CLOSING", "EXPRESSION"],
+			["MAGIC_OR_TEXT", "EXPRESSION"]
+		],
+		TAG: [
+			["<","TAGNAME",">"],
+			["<","TAGNAME","/>"],
+			["<","TAGNAME","SPACE",">"],
+			["<","TAGNAME","SPACE","/>"],
+			["<","TAGNAME","SPACE","ATTRS",">"],
+			["<","TAGNAME","SPACE","ATTRS", "/>"]
+		],
+		CLOSING: [
+			["</","TAGNAME",">"],
+		],
+		ATTRS: [
+			["ATTR"],
+			["ATTR", "SPACE", "ATTRS"],
+			["MAGIC"],
+			["MAGIC","ATTRS"]
+		],
+		ATTR: [
+			["QUOTE","=","QUOTE"],
+			["NOT_SPACE_RIGHT_CARROT","=","QUOTE"],
+			["NOT_SPACE_RIGHT_CARROT","=","NOT_SPACE_RIGHT_CARROT"],
+			["NOT_SPACE_RIGHT_CARROT","=","MAGIC"],
+			["NOT_SPACE_RIGHT_CARROT"]
+		],
+		QUOTE: [
+			["'","SINGLE_QUOTE_MAGIC_OR_TEXT","'"],
+			['"',"DOUBLE_QUOTE_MAGIC_OR_TEXT",'"']
+		],
+		SINGLE_QUOTE_MAGIC_OR_TEXT: [
+			["NOT_MAGIC_OR_SINGLE"],
+			["NOT_MAGIC_OR_SINGLE","SINGLE_QUOTE_MAGIC_OR_TEXT" ],
+			["MAGIC"],
+			["MAGIC", "SINGLE_QUOTE_MAGIC_OR_TEXT"]
+		],
+		DOUBLE_QUOTE_MAGIC_OR_TEXT: [
+			["NOT_MAGIC_OR_DOUBLE"],
+			["NOT_MAGIC_OR_DOUBLE","DOUBLE_QUOTE_MAGIC_OR_TEXT" ],
+			["MAGIC"],
+			["MAGIC", "DOUBLE_QUOTE_MAGIC_OR_TEXT"]
+		],
+		MAGIC_OR_TEXT: [
+			["TEXT"],
+			["TEXT","MAGIC_OR_TEXT" ],
+			["MAGIC"],
+			["MAGIC", "MAGIC_OR_TEXT"]
+		],
+		MAGIC: [
+			["{", "NOT_END_MAGIC", "}"],
+		],
+		TEXT: [
+			["SPACE"],
+			["SPACE", "TEXT"],
+			["NOT_SPACE"],
+			["NOT_SPACE", "TEXT"]
+		]
+	}
+};
 ```
 
-## AMD use
+`EXPRESSION` is a key word and is the starting point of the expression tree.  
 
-Configure the `can` and `jquery` paths and the `can-parse` package:
+Once you built your grammar, build a parser like:
 
-```html
-<script src="require.js"></script>
-<script>
-	require.config({
-	    paths: {
-	        "jquery": "node_modules/jquery/dist/jquery",
-	        "can": "node_modules/canjs/dist/amd/can"
-	    },
-	    packages: [{
-		    	name: 'can-parse',
-		    	location: 'node_modules/can-parse/dist/amd',
-		    	main: 'lib/can-parse'
-	    }]
-	});
-	require(["main-amd"], function(){});
-</script>
+```js
+var parse = require("can-parse");
+
+var parser = parse(grammar);
 ```
 
-### Standalone use
 
-Load the `global` version of the plugin:
+Then parse something:
 
-```html
-<script src='./node_modules/can-parse/dist/global/can-parse.js'></script>
+```js
+parser("<my-element bar='car'/>");
 ```
 
-## Contributing
-
-### Making a Build
-
-To make a build of the distributables into `dist/` in the cloned repository run
-
-```
-npm install
-node build
-```
-
-### Running the tests
-
-Tests can run in the browser by opening a webserver and visiting the `test.html` page.
-Automated tests that run the tests from the command line in Firefox can be run with
-
-```
-npm test
-```
+Currently, this isn't useful except as a learning exercise.  
