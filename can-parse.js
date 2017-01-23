@@ -34,6 +34,9 @@ function nextTokenIndex(stackExpression) {
 		tokenIndex: stackExpression.tokenIndex+1
 	};
 }
+function copyMatch(match) {
+	return {lex: match.lex, match: match.match, index: match.index};
+}
 
 
 // want to know available lex options at all times ...
@@ -45,11 +48,14 @@ function makeParser(grammar){
 
 	// The main parsing function.  I'm not sure how it should externally interface yet.
 	// Perhaps it will write out an AST, or perhaps it will work via callbacks.
-	var parser = function(text) {
+	var parser = function(text, callback) {
 
 
 		recurseCount = 0;
 
+		// the index of the lex token
+		var index = 0;
+		var endedExpressions;
 
 		// The `expressionStack` tracks the state of where we are in the grammar's
 		// expression tree.
@@ -74,11 +80,16 @@ function makeParser(grammar){
 		var lexPossibilities = parser.getLexPossibilities(nextTokenIndex(expressionStack[0]));
 
 		// Get the matching lexical token, and the corresponding stack entries that need to be created.
-		var lexMatch = parser.getLexMatch(text, lexPossibilities);
+		var lexMatch = parser.getLexMatch(text, lexPossibilities, index);
 
 		// Update the stack with them
 		parser.updateStack(expressionStack, lexMatch);
 
+
+		callback(copyMatch(lexMatch), {
+			start: lexMatch.expressions,
+			end: []
+		}, expressionStack);
 		// console.log("  after stack ",  JSON.stringify(expressionStack));
 
 		// While we have a match, keep parsing!
@@ -88,10 +99,11 @@ function makeParser(grammar){
 				return;
 			}
 
+			endedExpressions = [];
 			// Update text to the remainder to be parsed.
 			text = text.substr(lexMatch.match.length);
 			// console.log(text);
-
+			index += lexMatch.match.length;
 			// Start at the bottom of the stack, get the next lexical tokens that we might match
 			// And see if we match them.
 			// If the current expression has COMPLETED, we try the next item up the stack.
@@ -102,7 +114,7 @@ function makeParser(grammar){
 				//console.log("    getLexPossibilities",JSON.stringify(stackExpression),  lexToNextExpressions);
 
 				// Get the lexical token that matches the start of `text`.
-				var lexMatch = parser.getLexMatch(text, lexToNextExpressions);
+				var lexMatch = parser.getLexMatch(text, lexToNextExpressions, index);
 
 				// If there isn't one, this means there's a parsing error.
 				if(!lexMatch) {
@@ -113,7 +125,10 @@ function makeParser(grammar){
 				// If there were no lexical matches, but the current expression is complete,
 				// We pop the stack and try the next item in the stack.
 				if( lexMatch.lex === "EXPRESSION_COMPLETED" ) {
-					expressionStack.pop();
+					// update the ruleIndexes with the rule that actually completed
+					var last = expressionStack.pop();
+					last.ruleIndexes = lexMatch.expressions[0].ruleIndexes;
+					endedExpressions.push( last );
 					return;
 				} else {
 					return lexMatch;
@@ -125,20 +140,25 @@ function makeParser(grammar){
 			// If we got a lexMatch
 			if(newLexMatch) {
 				// update the stack with it.
-				parser.updateStack(expressionStack, newLexMatch);
+				var startedExpressions = parser.updateStack(expressionStack, newLexMatch);
 
 				// If it is the last of an expression, pop the stack.
 				if(parser.isLastMatch(last(expressionStack) )) {
-					expressionStack.pop();
+					endedExpressions.push( expressionStack.pop() );
 				}
-
+				callback(copyMatch(newLexMatch), {
+					end: endedExpressions,
+					start: startedExpressions
+				}, expressionStack);
 				//console.log("  after stack ",  JSON.stringify(expressionStack));
 			}
 
 			lexMatch = newLexMatch;
 
 		}
-
+		callback({lex: null, token: null, match: null, index: index}, {
+			end: endedExpressions
+		}, expressionStack);
 	};
 
 
@@ -228,13 +248,14 @@ function makeParser(grammar){
 	// try each one against `text` and see which one matches.
 	// If none match, and there's an `EXPRESSION_COMPLETED` possibility,
 	// return that.
-	parser.getLexMatch = function(text, lexPossibilities) {
+	parser.getLexMatch = function(text, lexPossibilities, index) {
 		var EXPRESSION_COMPLETED;
 		var lexMatch = eachBreak(lexPossibilities, function(expressions, lexKey){
 			if(lexKey === "EXPRESSION_COMPLETED") {
 				EXPRESSION_COMPLETED = {
 					expressions: expressions,
-					lex: lexKey
+					lex: lexKey,
+					index: index
 				};
 				return; // keep checking
 			}
@@ -244,7 +265,8 @@ function makeParser(grammar){
 				return {
 					match: result[0],
 					expressions: expressions,
-					lex: lexKey
+					lex: lexKey,
+					index: index
 				};
 			}
 		});
@@ -259,6 +281,7 @@ function makeParser(grammar){
 	parser.updateStack = function(stack, lexMatch) {
 		var topOfStack = last(stack);
 		var lastRule = last(lexMatch.expressions);
+		var startedExpressions = [];
 
 		// If the lexMatch was the same as the current item in the stack,
 		// move the stack to the new tokenIndex.
@@ -283,11 +306,13 @@ function makeParser(grammar){
 				for(var i = 1; i < lexMatch.expressions.length; i++) {
 					var expr = lexMatch.expressions[i];
 					stack.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes, tokenIndex: 0});
+					startedExpressions.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes});
 				}
 			} else {
 				// we probably popped the stack
 			}
 		}
+		return startedExpressions;
 	};
 
 	// Given a stack item, return true if its `tokenIndex`

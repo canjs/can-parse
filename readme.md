@@ -115,7 +115,25 @@ var parser = parse(grammar);
 Then parse something:
 
 ```js
-parser("<my-element bar='car'/>");
+parser("<my-element bar='car'/>" ,function(token, expressions){
+	token //-> { lex: "<", match: "<", index: 0 }
+	expressions.end // -> []
+	expressions.start
+	// ->[
+	// 	{
+	//		"expression": "EXPRESSION",
+	//		"ruleIndexes": [ 0, 3 ]
+	// 	},
+	// 	{
+	//		"expression": "TAG",
+	//		"ruleIndexes": [ 0, 1, 2, 3, 4, 5]
+	// 	}
+	// ]
+});
 ```
 
-Currently, this isn't useful except as a learning exercise.  
+The `parser` function takes:
+
+ - The `string` to be parsed 
+ - A callback which will be called back with each
+lexical token as it's matched , what was matched, and where it's matched, and the expressions that have started and ended with the matching of that token.
