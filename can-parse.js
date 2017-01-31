@@ -216,7 +216,7 @@ function makeParser(grammar){
 
 			// If the token is a lexical token (or a COMPLETED rule), add this expression.
 			if(grammar.lex[token] || token === "EXPRESSION_COMPLETED") {
-				expressionLexes[token] = [{expression: stackExpression.expression, ruleIndexes: subExpressionRules[token] }];
+				expressionLexes[token] = [[{expression: stackExpression.expression, ruleIndexes: subExpressionRules[token] }]];
 			}
 			// We only need to process a token's children once.  So
 			// We make sure this is the first time seeing that token.
@@ -228,14 +228,19 @@ function makeParser(grammar){
 					ruleIndexes: numberKeys(grammar.tree[token]),
 					tokenIndex: 0
 				});
-
+				
 				// Add those lexes to this list of possibilities.
 				each(lexes, function(subExpressionAndRules, lex){
-					subExpressionAndRules = subExpressionAndRules.slice(0);
+					each(subExpressionAndRules, function(subExpressionAndRules){
+						subExpressionAndRules = subExpressionAndRules.slice(0);
 
-					// Add this expression so we know this lex is within this expression.
-					subExpressionAndRules.unshift({expression: stackExpression.expression, ruleIndexes: subExpressionRules[token]});
-					expressionLexes[lex] = subExpressionAndRules;
+						// Add this expression so we know this lex is within this expression.
+						subExpressionAndRules.unshift({expression: stackExpression.expression, ruleIndexes: subExpressionRules[token]});
+						if(!expressionLexes[lex]) {
+							expressionLexes[lex] = []
+						}
+						expressionLexes[lex].push(subExpressionAndRules);
+					});
 				});
 			}
 		});

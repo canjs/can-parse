@@ -19,7 +19,7 @@ var grammar = {
 		ALPHA_NUMERIC: /^[A-Za-z0-9]+/,
 		TAGNAME: /^[a-z][-:_A-Za-z0-9]*/,
 		NOT_END_MAGIC: /^([^\}]*)/,
-		NOT_SPACE: /^[^\s\{\}<]+/,
+		NOT_SPACE: /^[^\s\{\}]+/,
 		NOT_SPACE_RIGHT_CARROT: /^[^\s>=\{]+/,
 		NOT_MAGIC_OR_DOUBLE: /^[^"\{]+/,
 		NOT_MAGIC_OR_SINGLE: /^[^'\{]+/
@@ -86,7 +86,9 @@ var grammar = {
 			["SPACE"],
 			["SPACE", "TEXT"],
 			["NOT_SPACE"],
-			["NOT_SPACE", "TEXT"]
+			["NOT_SPACE", "TEXT"],
+			["<"],
+			["<","TEXT"]
 		]
 	}
 };
@@ -106,36 +108,85 @@ QUnit.test("parse.getLexPossibilities", function(){
 	var lexPossibilities = parser.getLexPossibilities({expression: "TAG", ruleIndexes: [2,3,4,5], tokenIndex: 3});
 	console.log(lexPossibilities);
 	QUnit.deepEqual(lexPossibilities, {
-		">": [
+		">": [[
 			{expression:"TAG", ruleIndexes: [2]}
-		],
-		"/>": [
+		]],
+		"/>": [[
 			{expression:"TAG", ruleIndexes: [3]}
-		],
-		"'": [
+		]],
+		"'": [[
 			{expression:"TAG", ruleIndexes: [4,5]},
 			{expression:"ATTRS", ruleIndexes: [0,1]},
 			{expression:"ATTR", ruleIndexes: [0]},
 			{expression:"QUOTE", ruleIndexes: [0]},
-		],
-		'"': [
+		]],
+		'"': [[
 			{expression:"TAG", ruleIndexes: [4,5]},
 			{expression:"ATTRS", ruleIndexes: [0,1]},
 			{expression:"ATTR", ruleIndexes: [0]},
 			{expression:"QUOTE", ruleIndexes: [1]}
-		],
-		NOT_SPACE_RIGHT_CARROT: [
+		]],
+		NOT_SPACE_RIGHT_CARROT: [[
 			{expression:"TAG", ruleIndexes: [4,5]},
 			{expression:"ATTRS", ruleIndexes: [0,1]},
 			{expression:"ATTR", ruleIndexes: [1,2,3,4]},
-		],
-		"{": [
+		]],
+		"{": [[
 			{expression:"TAG", ruleIndexes: [4,5]},
 			{expression:"ATTRS", ruleIndexes: [2,3]},
 			{expression:"MAGIC", ruleIndexes: [0]}
-		]
+		]]
 	});
 
+});
+
+QUnit.test("parse.getLexPossibilities for multiple expressions", function(){
+	var parser = parse(grammar);
+
+	var lexPossibilities = parser.getLexPossibilities({expression: "EXPRESSION", ruleIndexes: [0,1,2,3,4,5], tokenIndex: 0});
+
+	// it's possible it's text ...
+	QUnit.deepEqual(lexPossibilities["<"], [
+		[
+			{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ] },
+			{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ] }
+		],
+		[
+			{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ] },
+			{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ] },
+			{ "expression": "TEXT", "ruleIndexes": [ 4, 5 ] }
+		]
+	]);
+
+
+});
+
+QUnit.test("parser.getLexMatch", function(){
+	var parser = parse(grammar);
+
+	var lexPossibilities = parser.getLexPossibilities({expression: "EXPRESSION", ruleIndexes: [0,1,2,3,4,5], tokenIndex: 0});
+
+	var lexMatch = parser.getLexMatch("<", lexPossibilities, 0);
+
+
+
+	// it's possible it's text ...
+	QUnit.deepEqual(lexMatch, {
+		expressions: [
+			[
+				{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ] },
+				{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ] }
+			],
+			[
+				{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ] },
+				{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ] },
+				{ "expression": "TEXT", "ruleIndexes": [ 4, 5 ] }
+			]
+		],
+		lex: "<",
+		index: 0,
+		match: "<"
+	});
 });
 
 
@@ -275,4 +326,40 @@ QUnit.test("updateStack", function(){
 		{expression: "ATTRS", ruleIndexes:[0,1], tokenIndex: 0},
 		{expression: "ATTR", ruleIndexes: [1,2,3,4], tokenIndex: 0}
 	]);
+});
+
+
+// < is an expression so it can't be a minimum match :-(
+// foo<abc <
+// foo<abc <
+QUnit.test("handles conflicting expressions (#3)", function(){
+	var calls = [
+		[
+			{ "lex": "NOT_MAGIC_OR_SINGLE", "match": "foo <bar", "index": 0 },
+			{
+				"start": [
+					{
+						"expression": "EXPRESSION",
+						"ruleIndexes": [ 0, 3 ]
+					},
+					{
+						"expression": "TAG",
+						"ruleIndexes": [ 0, 1, 2, 3, 4, 5]
+					}
+				],
+				end: []
+			}
+		]
+	];
+
+	var parser = parse(grammar);
+
+	var parseOut = [];
+
+	parser("<bar", function(token, changes){
+		parseOut.push([token, changes]);
+	});
+
+	//console.log(JSON.stringify(parseOut, null, '\t'));
+	QUnit.deepEqual(parseOut, calls, "parsing runs through without errors");
 });
