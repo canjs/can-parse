@@ -1,5 +1,7 @@
 # can-parse
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/canjs/can-parse.svg)](https://greenkeeper.io/)
+
 [![Build Status](https://travis-ci.org/canjs/can-parse.png?branch=master)](https://travis-ci.org/canjs/can-parse)
 
 A simple context-free parser generator
