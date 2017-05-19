@@ -27,16 +27,6 @@
     "develop": "done-serve --static --develop --port 8080"
   },
   "main": "dist/cjs/can-parse",
-  "browser": {
-    "transform": [
-      "cssify"
-    ]
-  },
-  "browserify": {
-    "transform": [
-      "cssify"
-    ]
-  },
   "keywords": [
     "canjs"
   ],
@@ -57,7 +47,6 @@
   "dependencies": {
     "can": "^2.3.16",
     "can-util": "^3.2.2",
-    "cssify": "^0.6.0",
     "jquery": "~2.2.1"
   },
   "devDependencies": {
