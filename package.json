@@ -1,6 +1,6 @@
 {
   "name": "can-parse",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A simple context-free parser generator",
   "homepage": "http://canjs.com",
   "repository": {
@@ -55,8 +55,7 @@
     "npmAlgorithm": "flat"
   },
   "dependencies": {
-    "can": "^2.3.16",
-    "can-util": "^3.2.2",
+    "can-util": "^3.7.0",
     "cssify": "^0.6.0",
     "jquery": "~2.2.1"
   },
