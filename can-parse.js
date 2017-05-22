@@ -11,15 +11,6 @@ var eachBreak = function(obj, callback){
 		}
 	}
 };
-// Goes through an array backwards until a value is returned
-var eachBackwardsBreak = function(arr,callback){
-	for(var len = arr.length, i = len - 1; i >= 0; i--) {
-		var res = callback(arr[i], i);
-		if(res !== undefined) {
-			return res;
-		}
-	}
-};
 
 // Gives all the indexes of an array as numbers.
 function numberKeys(obj) {
@@ -38,6 +29,14 @@ function nextTokenIndex(stackExpression) {
 function copyMatch(match) {
 	return {lex: match.lex, match: match.match, index: match.index};
 }
+var prettyLexmatch = function(lexMatch){
+	if(!lexMatch) {
+		return lexMatch;
+	}
+	return lexMatch.lex+" in "+lexMatch.expressions.map(function(expression){
+		return expression.expression;
+	}).join(",");
+};
 
 
 // want to know available lex options at all times ...
@@ -263,18 +262,11 @@ function makeParser(grammar){
 		}));
 		return branches;
 	};
-	var prettyLexmatch = function(lexMatch){
-		if(!lexMatch) {
-			return lexMatch;
-		}
-		return lexMatch.lex+" in "+lexMatch.expressions.map(function(expression){
-			return expression.expression;
-		}).join(",");
-	};
+
 
 	// this needs to return something that can get to `getNetBranchs`
 	parser.processBranch = function(branch){
-		console.log("processBranch", branch.stackDepth, prettyLexmatch(branch.lexMatch))
+		//console.log("processBranch", branch.stackDepth, prettyLexmatch(branch.lexMatch))
 		// we are still walking up the stack
 		if(branch.stackDepth >= 0) {
 			// walk up the stack
@@ -324,7 +316,7 @@ function makeParser(grammar){
 			}
 		} else {
 			// reset ?
-			debugger;
+			throw "what happens here";
 		}
 
 	};
@@ -405,7 +397,7 @@ function makeParser(grammar){
 						// Add this expression so we know this lex is within this expression.
 						subExpressionAndRules.unshift({expression: stackExpression.expression, ruleIndexes: subExpressionRules[token], tokenIndex: 0});
 						if(!expressionLexes[lex]) {
-							expressionLexes[lex] = []
+							expressionLexes[lex] = [];
 						}
 						expressionLexes[lex].push(subExpressionAndRules);
 					});
@@ -454,10 +446,11 @@ function makeParser(grammar){
 	// Returns the expressions that were added to the stack
 	parser.updateStack = function(stack, lexMatch) {
 		var startedExpressions = [];
+		var i, expr;
 		if(stack.length === 0 ) {
 			// we're adding to the stack the entire lexmatch.expressions
-			for(var i = 0; i < lexMatch.expressions.length; i++) {
-				var expr = lexMatch.expressions[i];
+			for(i = 0; i < lexMatch.expressions.length; i++) {
+				expr = lexMatch.expressions[i];
 				stack.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes, tokenIndex: 0});
 				startedExpressions.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes});
 			}
@@ -490,8 +483,8 @@ function makeParser(grammar){
 				topOfStack.tokenIndex++;
 
 				// Add the other expressions into the stack.
-				for(var i = 1; i < lexMatch.expressions.length; i++) {
-					var expr = lexMatch.expressions[i];
+				for(i = 1; i < lexMatch.expressions.length; i++) {
+					expr = lexMatch.expressions[i];
 					stack.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes, tokenIndex: 0});
 					startedExpressions.push({expression: expr.expression,ruleIndexes: expr.ruleIndexes});
 				}
