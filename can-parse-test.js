@@ -106,35 +106,35 @@ QUnit.test("parse.getLexPossibilities", function(){
 	var parser = parse(grammar);
 
 	var lexPossibilities = parser.getLexPossibilities({expression: "TAG", ruleIndexes: [2,3,4,5], tokenIndex: 3});
-	console.log(lexPossibilities);
+
 	QUnit.deepEqual(lexPossibilities, {
 		">": [[
-			{expression:"TAG", ruleIndexes: [2]}
+			{expression:"TAG", ruleIndexes: [2], "tokenIndex": 3}
 		]],
 		"/>": [[
-			{expression:"TAG", ruleIndexes: [3]}
+			{expression:"TAG", ruleIndexes: [3], tokenIndex: 3}
 		]],
 		"'": [[
-			{expression:"TAG", ruleIndexes: [4,5]},
-			{expression:"ATTRS", ruleIndexes: [0,1]},
-			{expression:"ATTR", ruleIndexes: [0]},
-			{expression:"QUOTE", ruleIndexes: [0]},
+			{expression:"TAG", ruleIndexes: [4,5], tokenIndex: 0},
+			{expression:"ATTRS", ruleIndexes: [0,1], tokenIndex: 0},
+			{expression:"ATTR", ruleIndexes: [0], tokenIndex: 0},
+			{expression:"QUOTE", ruleIndexes: [0], tokenIndex: 0},
 		]],
 		'"': [[
-			{expression:"TAG", ruleIndexes: [4,5]},
-			{expression:"ATTRS", ruleIndexes: [0,1]},
-			{expression:"ATTR", ruleIndexes: [0]},
-			{expression:"QUOTE", ruleIndexes: [1]}
+			{expression:"TAG", ruleIndexes: [4,5], tokenIndex: 0},
+			{expression:"ATTRS", ruleIndexes: [0,1], tokenIndex: 0},
+			{expression:"ATTR", ruleIndexes: [0], tokenIndex: 0},
+			{expression:"QUOTE", ruleIndexes: [1], tokenIndex: 0}
 		]],
 		NOT_SPACE_RIGHT_CARROT: [[
-			{expression:"TAG", ruleIndexes: [4,5]},
-			{expression:"ATTRS", ruleIndexes: [0,1]},
-			{expression:"ATTR", ruleIndexes: [1,2,3,4]},
+			{expression:"TAG", ruleIndexes: [4,5], tokenIndex: 0},
+			{expression:"ATTRS", ruleIndexes: [0,1], tokenIndex: 0},
+			{expression:"ATTR", ruleIndexes: [1,2,3,4], tokenIndex: 0},
 		]],
 		"{": [[
-			{expression:"TAG", ruleIndexes: [4,5]},
-			{expression:"ATTRS", ruleIndexes: [2,3]},
-			{expression:"MAGIC", ruleIndexes: [0]}
+			{expression:"TAG", ruleIndexes: [4,5], tokenIndex: 0},
+			{expression:"ATTRS", ruleIndexes: [2,3], tokenIndex: 0},
+			{expression:"MAGIC", ruleIndexes: [0], tokenIndex: 0}
 		]]
 	});
 
@@ -148,25 +148,25 @@ QUnit.test("parse.getLexPossibilities for multiple expressions", function(){
 	// it's possible it's text ...
 	QUnit.deepEqual(lexPossibilities["<"], [
 		[
-			{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ] },
-			{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ] }
+			{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ], tokenIndex: 0 },
+			{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ], tokenIndex: 0 }
 		],
 		[
-			{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ] },
-			{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ] },
-			{ "expression": "TEXT", "ruleIndexes": [ 4, 5 ] }
+			{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ], tokenIndex: 0 },
+			{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ], tokenIndex: 0 },
+			{ "expression": "TEXT", "ruleIndexes": [ 4, 5 ], tokenIndex: 0 }
 		]
 	]);
 
 
 });
 
-QUnit.test("parser.getLexMatch", function(){
+QUnit.test("parser.getLexMatches", function(){
 	var parser = parse(grammar);
 
 	var lexPossibilities = parser.getLexPossibilities({expression: "EXPRESSION", ruleIndexes: [0,1,2,3,4,5], tokenIndex: 0});
 
-	var lexMatch = parser.getLexMatch("<", lexPossibilities, 0);
+	var lexMatch = parser.getLexMatches("<", lexPossibilities, 0);
 
 
 
@@ -174,13 +174,13 @@ QUnit.test("parser.getLexMatch", function(){
 	QUnit.deepEqual(lexMatch, {
 		expressions: [
 			[
-				{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ] },
-				{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ] }
+				{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ], tokenIndex: 0 },
+				{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ], tokenIndex: 0 }
 			],
 			[
-				{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ] },
-				{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ] },
-				{ "expression": "TEXT", "ruleIndexes": [ 4, 5 ] }
+				{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ], tokenIndex: 0 },
+				{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ], tokenIndex: 0 },
+				{ "expression": "TEXT", "ruleIndexes": [ 4, 5 ], tokenIndex: 0 }
 			]
 		],
 		lex: "<",
@@ -295,14 +295,18 @@ QUnit.test("basics", function(){
 
 	var parser = parse(grammar);
 
-	var parseOut = [];
+
+	var index = 0;
 
 	parser("<my-element bar='car'/>", function(token, changes){
-		parseOut.push([token, changes]);
+		console.log(token.match+"   ",changes.start);
+		QUnit.deepEqual(token, calls[index][0], "token |"+token.match);
+		QUnit.deepEqual(changes, calls[index][1], "changes |"+token.match);
+		index++;
 	});
 
 	//console.log(JSON.stringify(parseOut, null, '\t'));
-	QUnit.deepEqual(parseOut, calls, "parsing runs through without errors");
+
 });
 
 QUnit.test("updateStack", function(){
@@ -335,31 +339,41 @@ QUnit.test("updateStack", function(){
 QUnit.test("handles conflicting expressions (#3)", function(){
 	var calls = [
 		[
-			{ "lex": "NOT_MAGIC_OR_SINGLE", "match": "foo <bar", "index": 0 },
+			{ "index": 0, "lex": "<", "match": "<" },
 			{
+				"end": [],
 				"start": [
-					{
-						"expression": "EXPRESSION",
-						"ruleIndexes": [ 0, 3 ]
-					},
-					{
-						"expression": "TAG",
-						"ruleIndexes": [ 0, 1, 2, 3, 4, 5]
-					}
-				],
-				end: []
+					{ "expression": "EXPRESSION", "ruleIndexes": [ 2, 5 ] },
+					{ "expression": "MAGIC_OR_TEXT", "ruleIndexes": [ 0, 1 ] },
+					{ "expression": "TEXT", "ruleIndexes": [4,5] }
+				]
+			}
+		],
+		[
+			{ "index": 1, "lex": "NOT_SPACE", "match": "bar" },
+			{
+				"end": [],
+				"start": []
 			}
 		]
 	];
 
+	var index = 0;
+
 	var parser = parse(grammar);
 
-	var parseOut = [];
-
 	parser("<bar", function(token, changes){
-		parseOut.push([token, changes]);
+		console.log(token.match+"   ",changes.start);
+		var call = calls[index];
+		if(call) {
+			QUnit.deepEqual(token, call[0], "token |"+token.match);
+			QUnit.deepEqual(changes, call[1], "changes |"+token.match);
+		} else {
+			QUnit.notOk(token,"token");
+			QUnit.notOk(changes,"changes");
+		}
+
+		index++;
 	});
 
-	//console.log(JSON.stringify(parseOut, null, '\t'));
-	QUnit.deepEqual(parseOut, calls, "parsing runs through without errors");
 });
