@@ -355,6 +355,16 @@ QUnit.test("handles conflicting expressions (#3)", function(){
 				"end": [],
 				"start": []
 			}
+		],
+		[
+			{ "index": 4, "lex": null, "match": null, "token": null },
+			{
+				"end": [
+			  		{  "expression": "TEXT", "ruleIndexes": [ 2 ], "tokenIndex": 0 },
+		    		{ "expression": "MAGIC_OR_TEXT",  "ruleIndexes": [ 0 ], "tokenIndex": 0 },
+		    		{ "expression": "EXPRESSION", "ruleIndexes": [ 2 ], "tokenIndex": 0 }
+		  		]
+			}
 		]
 	];
 
