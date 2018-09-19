@@ -228,7 +228,7 @@ function makeParser(grammar){
 
 
 		var lexToNextExpressions = parser.getLexPossibilities(nextTokenIndex(stackExpression));
-
+		console.log("lexToNextExpressions",branch.text.substr(0,4),lexToNextExpressions);
 
 		// Get the lexical token that matches the start of `text`.
 		var lexMatches = parser.getLexMatches(branch.text, lexToNextExpressions, branch.index);

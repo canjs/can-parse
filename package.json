@@ -26,17 +26,7 @@
     "document": "documentjs",
     "develop": "done-serve --static --develop --port 8080"
   },
-  "main": "dist/cjs/can-parse",
-  "browser": {
-    "transform": [
-      "cssify"
-    ]
-  },
-  "browserify": {
-    "transform": [
-      "cssify"
-    ]
-  },
+  "main": "can-parse",
   "keywords": [
     "canjs"
   ],
@@ -55,12 +45,9 @@
     "npmAlgorithm": "flat"
   },
   "dependencies": {
-    "can-util": "^3.7.0",
-    "cssify": "^0.6.0",
-    "jquery": "~2.2.1"
+    "can-util": "^3.7.0"
   },
   "devDependencies": {
-    "documentjs": "^0.4.2",
     "jshint": "^2.9.1",
     "steal": "^0.16.0",
     "steal-qunit": "^0.1.1",
