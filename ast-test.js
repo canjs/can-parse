@@ -1,4 +1,4 @@
-QUnit.test("basics", function(){
+QUnit.test("basics", function(assert) {
 
 	"<my-element bar='car'/>"
 

@@ -102,12 +102,12 @@ QUnit.test('parse.getExpressionLex', function(){
 
 });*/
 
-QUnit.test("parse.getLexPossibilities", function(){
+QUnit.test("parse.getLexPossibilities", function(assert) {
 	var parser = parse(grammar);
 
 	var lexPossibilities = parser.getLexPossibilities({expression: "TAG", ruleIndexes: [2,3,4,5], tokenIndex: 3});
 
-	QUnit.deepEqual(lexPossibilities, {
+	assert.deepEqual(lexPossibilities, {
 		">": [[
 			{expression:"TAG", ruleIndexes: [2], "tokenIndex": 3}
 		]],
@@ -140,13 +140,13 @@ QUnit.test("parse.getLexPossibilities", function(){
 
 });
 
-QUnit.test("parse.getLexPossibilities for multiple expressions", function(){
+QUnit.test("parse.getLexPossibilities for multiple expressions", function(assert) {
 	var parser = parse(grammar);
 
 	var lexPossibilities = parser.getLexPossibilities({expression: "EXPRESSION", ruleIndexes: [0,1,2,3,4,5], tokenIndex: 0});
 
 	// it's possible it's text ...
-	QUnit.deepEqual(lexPossibilities["<"], [
+	assert.deepEqual(lexPossibilities["<"], [
 		[
 			{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ], tokenIndex: 0 },
 			{ "expression": "TAG", "ruleIndexes": [ 0, 1, 2, 3, 4, 5 ], tokenIndex: 0 }
@@ -161,7 +161,7 @@ QUnit.test("parse.getLexPossibilities for multiple expressions", function(){
 
 });
 
-QUnit.test("parser.getLexMatches", function(){
+QUnit.test("parser.getLexMatches", function(assert) {
 	var parser = parse(grammar);
 
 	var lexPossibilities = parser.getLexPossibilities({expression: "EXPRESSION", ruleIndexes: [0,1,2,3,4,5], tokenIndex: 0});
@@ -171,7 +171,7 @@ QUnit.test("parser.getLexMatches", function(){
 
 
 	// it's possible it's text ...
-	QUnit.deepEqual(lexMatch, {
+	assert.deepEqual(lexMatch, {
 		expressions: [
 			[
 				{ "expression": "EXPRESSION", "ruleIndexes": [ 0, 3 ], tokenIndex: 0 },
@@ -194,7 +194,7 @@ QUnit.test("parser.getLexMatches", function(){
 QUnit.test("COMPLETED", function(){
 	var parser = parse(grammar);
 
-	QUnit.deepEqual(parser.getLexPossibilities("ATTR",[1,2,3,4], 1),{
+	assert.deepEqual(parser.getLexPossibilities("ATTR",[1,2,3,4], 1),{
 		"=": [
 			["ATTR", [1,2,3]]
 		],
@@ -204,7 +204,7 @@ QUnit.test("COMPLETED", function(){
 	});
 });*/
 
-QUnit.test("basics", function(){
+QUnit.test("basics", function(assert) {
 	var calls = [
 		[
 			{ "lex": "<", "match": "<", "index": 0 },
@@ -300,8 +300,8 @@ QUnit.test("basics", function(){
 
 	parser("<my-element bar='car'/>", function(token, changes){
 		console.log(token.match+"   ",changes.start);
-		QUnit.deepEqual(token, calls[index][0], "token |"+token.match);
-		QUnit.deepEqual(changes, calls[index][1], "changes |"+token.match);
+		assert.deepEqual(token, calls[index][0], "token |"+token.match);
+		assert.deepEqual(changes, calls[index][1], "changes |"+token.match);
 		index++;
 	});
 
@@ -309,7 +309,7 @@ QUnit.test("basics", function(){
 
 });
 
-QUnit.test("updateStack", function(){
+QUnit.test("updateStack", function(assert) {
 	var parser = parse(grammar);
 	var stack = [
 		{expression: "EXPRESSION", ruleIndexes: [1], tokenIndex: 1},
@@ -324,7 +324,7 @@ QUnit.test("updateStack", function(){
 		],
 		"lex":"NOT_SPACE_RIGHT_CARROT"
 	});
-	QUnit.deepEqual(stack, [
+	assert.deepEqual(stack, [
 		{expression: "EXPRESSION", ruleIndexes: [1], tokenIndex: 1},
 		{expression: "TAG", ruleIndexes:[4,5], tokenIndex: 2},
 		{expression: "ATTRS", ruleIndexes:[0,1], tokenIndex: 0},
@@ -336,7 +336,7 @@ QUnit.test("updateStack", function(){
 // < is an expression so it can't be a minimum match :-(
 // foo<abc <
 // foo<abc <
-QUnit.test("handles conflicting expressions (#3)", function(){
+QUnit.test("handles conflicting expressions (#3)", function(assert) {
 	var calls = [
 		[
 			{ "index": 0, "lex": "<", "match": "<" },
@@ -376,11 +376,11 @@ QUnit.test("handles conflicting expressions (#3)", function(){
 		console.log(token.match+"   ",changes.start);
 		var call = calls[index];
 		if(call) {
-			QUnit.deepEqual(token, call[0], "token |"+token.match);
-			QUnit.deepEqual(changes, call[1], "changes |"+token.match);
+			assert.deepEqual(token, call[0], "token |"+token.match);
+			assert.deepEqual(changes, call[1], "changes |"+token.match);
 		} else {
-			QUnit.notOk(token,"token");
-			QUnit.notOk(changes,"changes");
+			assert.notOk(token,"token");
+			assert.notOk(changes,"changes");
 		}
 
 		index++;
@@ -389,7 +389,7 @@ QUnit.test("handles conflicting expressions (#3)", function(){
 });
 
 
-QUnit.test("call expressions (recursive expressions)", function(){
+QUnit.test("call expressions (recursive expressions)", function(assert) {
 	var callExpressionGrammar = {
 		lex: {
 			"(": /^\(/,
