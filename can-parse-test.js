@@ -387,3 +387,26 @@ QUnit.test("handles conflicting expressions (#3)", function(){
 	});
 
 });
+
+
+QUnit.test("call expressions (recursive expressions)", function(){
+	var callExpressionGrammar = {
+		lex: {
+			"(": /^\(/,
+			")": /^\)/,
+			WORD:  /^\w+/
+		},
+		tree: {
+			EXPRESSION: [
+				["CALL_EXPRESSION"]
+			],
+			CALL_EXPRESSION: [
+				["CALL_EXPRESSION","(","WORD",")"],
+				["WORD","(","WORD",")"],
+			]
+		}
+	};
+
+	var parser = parse(callExpressionGrammar);
+	parser("foo(first)(second)")
+});
