@@ -1,6 +1,6 @@
 {
   "name": "can-parse",
-  "version": "0.0.0",
+  "version": "0.0.3",
   "description": "A simple context-free parser generator",
   "homepage": "http://canjs.com",
   "repository": {
@@ -16,7 +16,7 @@
     "preversion": "npm test && npm run build",
     "version": "git commit -am \"Update dist for release\" && git checkout -b release && git add -f dist/",
     "postversion": "git push --tags && git checkout master && git branch -D release && git push",
-    "testee": "testee test/test.html --browsers firefox",
+    "testee": "testee test.html --browsers firefox",
     "test": "npm run jshint && npm run testee",
     "jshint": "jshint ./*.js --config",
     "release:patch": "npm version patch && npm publish",
@@ -26,17 +26,7 @@
     "document": "documentjs",
     "develop": "done-serve --static --develop --port 8080"
   },
-  "main": "dist/cjs/can-parse",
-  "browser": {
-    "transform": [
-      "cssify"
-    ]
-  },
-  "browserify": {
-    "transform": [
-      "cssify"
-    ]
-  },
+  "main": "can-parse",
   "keywords": [
     "canjs"
   ],
@@ -55,13 +45,9 @@
     "npmAlgorithm": "flat"
   },
   "dependencies": {
-    "can": "^3.4.0",
-    "can-util": "^3.2.2",
-    "cssify": "^1.0.3",
-    "jquery": "~3.1.1"
+    "can-util": "^3.7.0"
   },
   "devDependencies": {
-    "documentjs": "^0.4.2",
     "jshint": "^2.9.1",
     "steal": "^1.0.10",
     "steal-qunit": "^1.0.0",
